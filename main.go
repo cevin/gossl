@@ -245,7 +245,7 @@ func ReqCommandFunc(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	writeFile(CsrFilepath, toPEMBytes(request, "CERTIFICATE SIGN REQUEST"))
+	writeFile(CsrFilepath, toPEMBytes(request, "CERTIFICATE REQUEST"))
 	writeFile(KeyFilepath, toPEMBytes(encodedPrivateKey, header))
 
 	return nil
