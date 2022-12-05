@@ -24,6 +24,8 @@ var (
 	CaKeyFilepath                                                               string
 	CertFilepath                                                                string
 	KeyFilepath                                                                 string
+	CsrFilepath                                                                 string
+	CsrHashAlgo                                                                 int
 	KeyType                                                                     string
 	KeyBits                                                                     uint
 	Country, Org, OrgUnit, City, Province, Address, ZipCode, Serial, CommonName string
@@ -43,6 +45,19 @@ var (
 		Use:   "req",
 		Short: "generate certificate request",
 		RunE:  ReqCommandFunc,
+	}
+
+	SignAlgo = map[string]map[int]x509.SignatureAlgorithm{
+		"ecdsa": {
+			256: x509.ECDSAWithSHA256,
+			384: x509.ECDSAWithSHA384,
+			512: x509.ECDSAWithSHA512,
+		},
+		"rsa": {
+			256: x509.SHA256WithRSA,
+			384: x509.SHA384WithRSA,
+			512: x509.SHA512WithRSA,
+		},
 	}
 )
 
@@ -78,7 +93,9 @@ func init() {
 
 	// Generate certificate request flags
 	ReqCommand.Flags().AddFlagSet(Command.Flags())
-	ReqCommand.Flags().String("csr", "csr.certificateRequest", "generated certificate request filepath")
+	ReqCommand.Flags().StringVar(&CsrFilepath, "csr", "csr.certificateSignRequest", "generated certificate sign request filepath")
+	ReqCommand.Flags().StringVar(&KeyFilepath, "key", "cert.key", "generated private key filepath")
+	ReqCommand.Flags().IntVar(&CsrHashAlgo, "hash", 256, "SHA(N), choice:256,384,512")
 
 	Command.AddCommand(CaCommand, CertCommand, ReqCommand)
 	Command.Flags().SortFlags = false
@@ -86,8 +103,7 @@ func init() {
 
 func main() {
 	if err := Command.Execute(); err != nil {
-		panic(err)
-		//fmt.Println(err)
+		fmt.Println(err)
 		os.Exit(1)
 	}
 }
@@ -197,6 +213,41 @@ func CertCommandFunc(cmd *cobra.Command, args []string) error {
 	return nil
 }
 func ReqCommandFunc(cmd *cobra.Command, args []string) error {
+
+	privateKey, _ := generatePrivateKey(KeyType, int(KeyBits))
+
+	signAlgo, ok := SignAlgo[KeyType][CsrHashAlgo]
+	if !ok {
+		return errors.New("invalid hash algo, accept: 256,384 or 512")
+	}
+
+	template := &x509.CertificateRequest{
+		Subject: pkix.Name{
+			Country:            []string{Country},
+			Organization:       []string{Org},
+			OrganizationalUnit: []string{OrgUnit},
+			Locality:           []string{City},
+			Province:           []string{Province},
+			StreetAddress:      []string{Address},
+			PostalCode:         []string{ZipCode},
+			CommonName:         CommonName,
+		},
+		SignatureAlgorithm: signAlgo,
+	}
+
+	request, err := x509.CreateCertificateRequest(rand.Reader, template, privateKey)
+	if err != nil {
+		return err
+	}
+
+	encodedPrivateKey, header, err := encodePrivateKey(privateKey)
+	if err != nil {
+		return err
+	}
+
+	writeFile(CsrFilepath, toPEMBytes(request, "CERTIFICATE SIGN REQUEST"))
+	writeFile(KeyFilepath, toPEMBytes(encodedPrivateKey, header))
+
 	return nil
 }
 
