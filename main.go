@@ -16,6 +16,7 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -67,11 +68,11 @@ func init() {
 	}
 
 	Command.Flags().StringVar(&KeyType, "type", "ecdsa", "private key type (ecdsa|rsa)")
-	Command.Flags().UintVar(&KeyBits, "bits", 521, "private key bits (rsa:2048,4096|ecdsa:256,384,521)")
+	Command.Flags().UintVar(&KeyBits, "bits", 256, "private key bits (rsa:2048,4096|ecdsa:256,384,521)")
 
-	Command.Flags().StringVar(&Country, "country", "US", "pkix:Country")
+	Command.Flags().StringVar(&Country, "country", "", "pkix:Country")
 	Command.Flags().StringVar(&Org, "org", "", "pkix:Organization")
-	Command.Flags().StringVar(&OrgUnit, "ou", "IT", "pkix:OrganizationalUnit")
+	Command.Flags().StringVar(&OrgUnit, "ou", "", "pkix:OrganizationalUnit")
 	Command.Flags().StringVar(&City, "city", "", "pkix:Locality")
 	Command.Flags().StringVar(&Province, "province", "", "pkix:Province")
 	Command.Flags().StringVar(&Address, "address", "", "pkix:StreetAddress")
@@ -221,6 +222,8 @@ func ReqCommandFunc(cmd *cobra.Command, args []string) error {
 		return errors.New("invalid hash algo, accept: 256,384 or 512")
 	}
 
+	dns := strings.Split(strings.ReplaceAll(CommonName, " ", ""), ",")
+
 	template := &x509.CertificateRequest{
 		Subject: pkix.Name{
 			Country:            []string{Country},
@@ -230,8 +233,9 @@ func ReqCommandFunc(cmd *cobra.Command, args []string) error {
 			Province:           []string{Province},
 			StreetAddress:      []string{Address},
 			PostalCode:         []string{ZipCode},
-			CommonName:         CommonName,
+			CommonName:         dns[0],
 		},
+		DNSNames:           dns,
 		SignatureAlgorithm: signAlgo,
 	}
 
