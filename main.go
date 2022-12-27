@@ -133,7 +133,7 @@ func CaCommandFunc(cmd *cobra.Command, args []string) error {
 
 	caCert := createCertificate(pkixItem, true)
 
-	cert := sign(caCert, caCert, privateKey)
+	cert := sign(caCert, caCert, privateKey, nil)
 
 	writeFile(CaCertFilepath, toPEMBytes(cert, "CERTIFICATE"))
 	writeFile(CaKeyFilepath, toPEMBytes(encodedPrivateKey, header))
@@ -199,7 +199,7 @@ func CertCommandFunc(cmd *cobra.Command, args []string) error {
 
 	newCert := createCertificate(pkixItem, false)
 
-	cert := sign(newCert, CaCert, CaPrivateKey.(crypto.Signer))
+	cert := sign(newCert, CaCert, privateKey, CaPrivateKey.(crypto.Signer))
 
 	writeFile(CertFilepath, toPEMBytes(cert, "CERTIFICATE"))
 	writeFile(KeyFilepath, toPEMBytes(encodedPrivateKey, header))
@@ -294,9 +294,15 @@ func getFilepath(filename string) string {
 	return filename
 }
 
-func sign(cert, cacert *x509.Certificate, privateKey crypto.Signer) []byte {
+func sign(cert, cacert *x509.Certificate, priv1, priv2 crypto.Signer) []byte {
+	pub := priv1.Public()
+	priv := priv1
 
-	certificate, err := x509.CreateCertificate(rand.Reader, cert, cacert, privateKey.Public(), privateKey)
+	if priv2 != nil {
+		priv = priv2
+	}
+
+	certificate, err := x509.CreateCertificate(rand.Reader, cert, cacert, pub, priv)
 	if err != nil {
 		log.Fatalln(err)
 	}
