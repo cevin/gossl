@@ -185,7 +185,7 @@ func CertCommandFunc(*cobra.Command, []string) error {
 	if err != nil {
 		return err
 	}
-	names := strings.Split(strings.ReplaceAll(CommonName, " ", ""), ":")
+	names := strings.Split(strings.ReplaceAll(CommonName, " ", ""), ",")
 	pkixItem := pkix.Name{
 		Country:            []string{Country},
 		Organization:       []string{Org},
