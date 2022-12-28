@@ -131,7 +131,7 @@ func CaCommandFunc(cmd *cobra.Command, args []string) error {
 		CommonName:         CommonName,
 	}
 
-	caCert := createCertificate(pkixItem, true)
+	caCert := createCertificate(pkixItem, nil, true)
 
 	cert := sign(caCert, caCert, privateKey, nil)
 
@@ -185,6 +185,7 @@ func CertCommandFunc(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	names := strings.Split(strings.ReplaceAll(CommonName, " ", ""), ":")
 	pkixItem := pkix.Name{
 		Country:            []string{Country},
 		Organization:       []string{Org},
@@ -194,10 +195,10 @@ func CertCommandFunc(cmd *cobra.Command, args []string) error {
 		StreetAddress:      []string{Address},
 		PostalCode:         []string{ZipCode},
 		SerialNumber:       Serial,
-		CommonName:         CommonName,
+		CommonName:         names[0],
 	}
 
-	newCert := createCertificate(pkixItem, false)
+	newCert := createCertificate(pkixItem, names[1:], false)
 
 	cert := sign(newCert, CaCert, privateKey, CaPrivateKey.(crypto.Signer))
 
@@ -310,7 +311,7 @@ func sign(cert, cacert *x509.Certificate, priv1, priv2 crypto.Signer) []byte {
 	return certificate
 }
 
-func createCertificate(pkixItem pkix.Name, isCa bool) *x509.Certificate {
+func createCertificate(pkixItem pkix.Name, extraNames []string, isCa bool) *x509.Certificate {
 
 	keyUsage := x509.KeyUsageDigitalSignature
 
@@ -331,6 +332,10 @@ func createCertificate(pkixItem pkix.Name, isCa bool) *x509.Certificate {
 		KeyUsage:              keyUsage,
 		BasicConstraintsValid: true,
 		CRLDistributionPoints: []string{},
+	}
+
+	if extraNames != nil {
+		certificate.DNSNames = extraNames
 	}
 
 	return certificate
