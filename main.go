@@ -109,7 +109,7 @@ func main() {
 	}
 }
 
-func CaCommandFunc(cmd *cobra.Command, args []string) error {
+func CaCommandFunc(*cobra.Command, []string) error {
 	privateKey, err := generatePrivateKey(KeyType, int(KeyBits))
 	if err != nil {
 		return err
@@ -146,7 +146,7 @@ func CaCommandFunc(cmd *cobra.Command, args []string) error {
 
 	return nil
 }
-func CertCommandFunc(cmd *cobra.Command, args []string) error {
+func CertCommandFunc(*cobra.Command, []string) error {
 	var (
 		realCaCertFilepath = getFilepath(CaCertFilepath)
 		realCaKeyFilepath  = getFilepath(CaKeyFilepath)
@@ -214,7 +214,7 @@ func CertCommandFunc(cmd *cobra.Command, args []string) error {
 
 	return nil
 }
-func ReqCommandFunc(cmd *cobra.Command, args []string) error {
+func ReqCommandFunc(*cobra.Command, []string) error {
 
 	privateKey, _ := generatePrivateKey(KeyType, int(KeyBits))
 
